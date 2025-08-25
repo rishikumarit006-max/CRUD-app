@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD App with Auto Delete</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 340px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .container:hover {
+      transform: translateY(-3px);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .input-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      padding: 8px 12px;
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    ul {
+      list-style: none;
+      padding: 10px;
+      margin-top: 20px;
+      text-align: left;
+      background-color: #ffe4b3;
+      border-radius: 10px;
+      min-height: 50px;
+    }
+
+    li {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px;
+      border-radius: 6px;
+      background: #fff3e0;
+      flex-direction: column;
+      align-items: flex-start;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .item-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-date {
+      font-size: 12px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .edit-btn, .delete-btn {
+      margin-left: 5px;
+      padding: 5px 8px;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: background 0.3s;
+    }
+
+    .edit-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    .edit-btn:hover {
+      background: #0056b3;
+    }
+
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    .delete-btn:hover {
+      background: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CRUD App</h1>
+    <div class="input-group">
+      <input type="text" id="itemInput" placeholder="Enter item name">
+      <button onclick="addItem()">Add</button>
+    </div>
+    <ul id="itemList"></ul>
+  </div>
+
+  <script>
+    const itemInput = document.getElementById('itemInput');
+    const itemList = document.getElementById('itemList');
+
+    // Load items from localStorage or initialize empty
+    let items = JSON.parse(localStorage.getItem('items')) || [];
+
+    // Display items with date & time
+    function displayItems() {
+      itemList.innerHTML = '';
+      items.forEach((item, index) => {
+        const li = document.createElement('li');
+
+        // Top row with item text + buttons
+        const itemHeader = document.createElement('div');
+        itemHeader.className = 'item-header';
+        itemHeader.innerHTML = `<span>${item.name}</span>`;
+
+        const btnContainer = document.createElement('div');
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.className = 'edit-btn';
+        editBtn.onclick = () => editItem(index);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.onclick = () => deleteItem(index);
+
+        btnContainer.appendChild(editBtn);
+        btnContainer.appendChild(deleteBtn);
+        itemHeader.appendChild(btnContainer);
+
+        // Date below item name
+        const dateText = document.createElement('div');
+        dateText.className = 'item-date';
+        dateText.textContent = `Created: ${item.date}`;
+
+        li.appendChild(itemHeader);
+        li.appendChild(dateText);
+        itemList.appendChild(li);
+      });
+
+      // Save items to localStorage
+      localStorage.setItem('items', JSON.stringify(items));
+    }
+
+    // Add new item with date & time & expiry time (3 min)
+    function addItem() {
+      const name = itemInput.value.trim();
+      if (name) {
+        const now = new Date();
+        const dateTime = now.toLocaleString();
+        const expiryTime = now.getTime() + 2 * 60 * 1000; // 3 min in ms
+        items.push({ name: name, date: dateTime, expiry: expiryTime });
+        itemInput.value = '';
+        displayItems();
+      }
+    }
+
+    // Edit item name but keep original date and expiry
+    function editItem(index) {
+      const newName = prompt('Edit item:', items[index].name);
+      if (newName) {
+        items[index].name = newName;
+        displayItems();
+      }
+    }
+
+    // Delete item manually
+    function deleteItem(index) {
+      items.splice(index, 1);
+      displayItems();
+    }
+
+    // Check and remove expired items automatically
+    function checkExpiry() {
+      const now = Date.now();
+      items = items.filter(item => item.expiry > now);
+      displayItems();
+    }
+
+    // Run expiry check every 5 seconds
+    setInterval(checkExpiry, 5000);
+
+    // Initial load
+    displayItems();
+  </script>
+</body>
+</html>
